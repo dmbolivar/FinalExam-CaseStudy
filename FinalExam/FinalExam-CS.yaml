@@ -1,0 +1,47 @@
+---
+- name: Applying Security Solutions in Yondu Inc.
+  hosts: control_node
+  become: true
+
+  tasks:
+    # Task : System Updates and Patching
+    - name: Update system packages
+      apt:
+        upgrade: dist
+        update_cache: yes
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Update system packages
+      yum:
+        name: '*'
+        state: latest
+      when: ansible_distribution == 'CentOS'
+
+    # Task : Firewall Configuration
+    - name: Allow SSH traffic
+      ufw:
+        rule: allow
+        name: OpenSSH
+        state: enabled
+      when: ansible_os_family == 'Debian'
+
+    - name: Allow SSH traffic
+      firewalld:
+        service: ssh
+        state: enabled
+      when: ansible_os_family == 'RedHat'
+
+    # Task : SSH Hardening
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin no"
+      notify: Restart SSH service
+
+  handlers:
+    - name: Restart SSH service
+      service:
+        name: sshd
+        state: restarted
+
